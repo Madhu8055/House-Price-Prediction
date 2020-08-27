@@ -1,0 +1,235 @@
+---
+title: "Predictive Analytics Assignment - Final Grade"
+author: "MADHUSUDHAN ASHWATH - 19203116"
+date: "11/12/2019"
+output: word_document
+---
+
+
+## Import data and Packages
+
+```{r}
+library(car)
+library(corrplot)
+library(olsrr)
+library(ggplot2)
+
+#Data
+house = read.csv("C:/Users/Win10/Desktop/Predective assessment/house.csv",header = TRUE)
+head(house)
+```
+
+
+## Exploratory Data Analysis:
+
+# 1. Using a boxplot, histogram and summary. Describe the distribution of the sales price of the houses
+#Explanation in word file
+
+```{r}
+boxplot(house$Price)
+hist(house$Price)
+summary(house$Price)
+```
+
+# 2. Convert all the categorical variables to factors. Using the summary and a boxplot describe how sales prices vary with respect to the number of bedrooms, bathrooms, garage size and school.
+#converting into factors 
+
+```{r}
+house$Bath = as.factor(house$Bath)
+house$Bed = as.factor(house$Bed)
+house$Garage = as.factor(house$Garage)
+house$School = as.factor(house$School)
+
+#Summary
+by(house$Price,house$Bed,summary)
+by(house$Price,house$Bath,summary)
+by(house$Price,house$Garage,summary)
+by(house$Price,house$Size,summary)
+by(house$Price,house$School,summary)
+
+#Boxplot
+boxplot(house$Price,house$Bed)
+boxplot(house$Price,house$Bath)
+boxplot(house$Price,house$Garage)
+boxplot(house$Price,house$Size)
+boxplot(house$Price,house$School)
+
+```
+
+# 3. Using the summary, correlation and the pairs plots discuss the relationship between the response sales price and each of the numeric predictor variables.
+
+```{r}
+#Summary
+by(house$Price,house$Size,summary)
+by(house$Price,house$Lot,summary)
+by(house$Price,house$Year,summary)
+
+#Correlation
+cor(house[c(1,2,3,6)])
+
+#Pairs
+pairs(house$Price~house$Size+house$Lot+house$Year)
+
+```
+
+## Regression Model:
+
+# 1. Fit a multiple linear regression model to the data with sales price as the response and size, lot, bath, bed, year, garage and school as the predictor variables. Write down the equation for this model.
+
+```{r}
+#To get positive beta
+house$Lot = house$Lot - mean(house$Lot)
+house$Size = house$Size - mean(house$Size)
+house$Year = house$Year - mean(house$Year)
+model <- lm(house$Price ~ house$Lot + house$Size + house$Year +  house$Bath + house$Bed +  house$Garage + house$School, data = house )
+summary(model)
+```
+
+
+# 9.	By looking at the information about the residuals in the summary and by plotting the residuals do you think this is a good model of the expected value of the house prices.
+
+```{r}
+plot(model$fitted.values,model$residuals)
+points(house$Price, model$residuals, col="red")
+abline(0,0)
+```
+
+## Anova : 
+
+# 1.	Compute the type 1 anova table. Interpret the output. Hint: State the hypothesis being tested, the test statistic and p-value and the conclusion in the context of the problem.
+
+```{r}
+a = anova(model)
+summary(a)
+```
+
+
+# 3 Compute a type 2 anova table comparing the full model with all predictor variables to the the reduced model with the suggessted predictor variable identiﬁed in the previous question removed. Hint: State the hypothesis being tested, the test statistic and p-value and the conclusion in the context of the problem.
+
+```{r}
+modelan = lm(house$Price ~ house$Lot + house$Size  +  house$Bath + house$Bed +  house$Garage + house$School, data = house )
+summary(modelan)
+b = anova(modelan)
+summary(b)
+anova(model,modelan)
+```
+
+
+## Diagnostics:
+
+# 1.	Check the linearity assumption by interpreting the added variable plots and component-plus-residual plots. What eﬀect would non-linearity have on the regression model and how might you correct or improve the model in the presence of non-linearity?
+
+```{r}
+avPlots(model)
+crPlots(model)
+```
+
+# 2.	Check the random/i.i.d. sample assumption by carefully reading the data description and computing the Durbin Watson test (state the hypothesis of the test, the test statistic and p-value and the conclusion in the context of the problem). What are the two common violations of the random/i.i.d. sample assumption? What eﬀect would dependant samples have on the regression model and how might you correct or improve the model in the presence of dependant samples?
+
+```{r}
+dwt(model)
+dwt(modelan)
+```
+ 
+# 3. Check the collinearity assumption by interpreting the correlation and variance inﬂation factors. What eﬀect would multicollinearity have on the regression model and how might you correct or improve the model in the presence of multicollinearity.
+
+```{r}
+mod<-cor(house[sapply(house, is.numeric)])
+corrplot.mixed(mod)
+vif(model)
+```
+
+# 4.	Check the zero conditional mean and homoscedasticity assumption by interpreting the studentized residuals vrs ﬁtted values plots and the studentized residuals vrs predictor variable plots. What eﬀect would heteroscedasticity have on the regression model and how might you correct or improve the model in the presence of heteroscedasticity.
+
+```{r}
+plot(fitted(model),rstudent(model))
+abline(0,0)
+
+#Size vs Studentized residuals
+plot(house$Size,rstudent(model))
+abline(0,0)
+
+#Lot vs Studentized residuals
+plot(house$Lot,rstudent(model))
+abline(0,0)
+
+#Bath vs Studentized residuals
+plot(house$Bath,rstudent(model),xlab="house$Bath",ylab="rstudent(model)")
+abline(0,0)
+
+#Bed vs Studentized residuals
+plot(house$Bed,rstudent(model),xlab="house$Bed",ylab="rstudent(model)")
+abline(0,0)
+
+#Year vs Studentized residuals
+plot(house$Year,rstudent(model),xlab="house$Year",ylab="rstudent(model)")
+abline(0,0)
+
+#Garage vs Studentized residuals
+plot(house$Garage,rstudent(model),xlab="house$Garage",ylab="rstudent(model)")
+abline(0,0)
+
+#School vs Studentized residuals
+plot(house$School,rstudent(model),xlab="house$school",ylab="rstudent(model)")
+abline(0,0)
+
+```
+
+# 5.	Check the Normality assumption by interpreting the histogram and quantilequantile plot of the studentized residuals. What eﬀect would non-normality have on the regression model and how might you correct or improve the model in the presence of non-normality.
+
+```{r}
+resu = rstudent(model)
+boxplot(resu)
+hist(resu,freq=FALSE)
+
+qqnorm(resu)
+qqline(resu,col=3)
+sort(resu)
+
+```
+
+##	Leverage, Inﬂuence and Outliers:
+
+# 1. Leverage Point: 
+
+```{r}
+leverage_points = as.numeric(which(hatvalues(model)>((2*3)/length(house$Price))))
+poi=leveragePlots(model)
+poi
+```
+
+# 2. Influence Point:
+
+```{r}
+influencePlot(model)
+```
+
+# 3. Outlier :
+
+```{r}
+outlierTest(model)
+ols_plot_resid_lev(model)
+```
+
+## Expected Value, CI and PI:
+
+# 1. Confidence Interval:
+
+```{r}
+ci=predict(model,level=0.95,interval='confidence')
+```
+
+# 2. Predection Interval :
+
+```{r}
+pi=predict(model,level=0.95,interval='prediction')
+```
+
+# 3. Graph Plot
+
+```{r}
+
+gp = ggplot(house, aes(house$Price,pi[,1])) + geom_point() + geom_smooth(method=lm,color="black") + geom_line(aes(y=pi[,2]), color="blue") +geom_line(aes(y=ci[,2]), color="red")+geom_line(aes(y=ci[,3]), color="red") + geom_line(aes(y=pi[,3]), color="blue") +
+  labs(x="Observed Price", y="Expected Price")
+gp
+```
